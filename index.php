@@ -7,7 +7,7 @@
             font-family: Verdana, sans-serif;
             font-size: 10px;
         }
-         .container {
+        .container {
             height: 100%;
             width: 100%;
             display: flex;
@@ -45,10 +45,10 @@
             background-color: blue;
             color: white;
         }
-        p{
+        p {
             font-size: 15px;
         }
-        form{
+        form {
             width: 50%;
         }
         .box {
@@ -58,45 +58,51 @@
             padding-left: 10px;
             width: 50%;
         }
-        
     </style>
 </head>
 <body>
     <main>
         <div class="container">
             <h1 style="margin-bottom: 30px;">Calculate</h1>
-            <form method="post" action="<?php echo $_SERVER["PHP_SELF"]; ?>">
+            <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
                 <p>Voltage</p>
-                <input type="text" name="voltage" required>Voltage(V)
+                <input type="text" name="voltage" required> Voltage (V)
                 <p>Current</p>
-                <input type="text" name="current" required>Ampere(A)
-                <p>CURRENT RATE</p>
-                <input type="text" name="current_rate" required>sen/kWh
+                <input type="text" name="current" required> Ampere (A)
+                <p>Current Rate</p>
+                <input type="text" name="current_rate" required> sen/kWh
                 <input type="submit" value="Calculate">
             </form>
 
             <?php
-            if ($_SERVER["REQUEST_METHOD"] == "POST") {
-                // from input
-                $voltage = $_POST["voltage"];
-                $current = $_POST["current"];
-                $current_rate = $_POST["current_rate"];
+            function calculate_power($voltage, $current) {
+                return $voltage * $current;
+            }
 
-                // is_numeric = numbering
+            function convert_rate_to_rm($current_rate) {
+                return $current_rate / 100;
+            }
+
+            function calculate_energy($power, $hours) {
+                return ($power * $hours) / 1000;
+            }
+
+            function calculate_total_cost($energy, $rate_rm) {
+                return $energy * $rate_rm;
+            }
+
+            function display_results($voltage, $current, $current_rate) {
                 if (is_numeric($voltage) && is_numeric($current) && is_numeric($current_rate)) {
                     $voltage = floatval($voltage);
                     $current = floatval($current);
                     $current_rate = floatval($current_rate);
 
-                    // power in kW
-                    $power = $voltage * $current;
-                    $power_kw = $power/1000;
-
-                    // Calculate rate in RM
-                    $rate_rm = $current_rate / 100; // Convert cents to RM
+                    $power = calculate_power($voltage, $current);
+                    $power_kw = $power / 1000;
+                    $rate_rm = convert_rate_to_rm($current_rate);
 
                     echo "<div class='box'>";
-                    echo "<p>POWER: $power_kw kw</p>";
+                    echo "<p>POWER: $power_kw kW</p>";
                     echo "<p>RATE: $rate_rm RM</p>";
                     echo "</div>";
                     echo "<br>";
@@ -109,11 +115,10 @@
                     echo "<th>Total (RM)</th>";
                     echo "</tr>";
 
-                    // Loop through each hour and calculate Energy and Total cost
                     for ($hour = 1; $hour <= 24; $hour++) {
-                        $index = $hour; // Use the loop index for the numbering
-                        $energy_kWh = ($power * $hour) / 1000; 
-                        $total_cost = number_format($energy_kWh * ($current_rate/100), 2); // Total cost in RM
+                        $index = $hour;
+                        $energy_kWh = calculate_energy($power, $hour);
+                        $total_cost = number_format(calculate_total_cost($energy_kWh, $rate_rm), 2);
 
                         echo "<tr>";
                         echo "<td><strong>$index</strong></td>";
@@ -126,6 +131,13 @@
                 } else {
                     echo "<p style='color: red;'>Invalid input. Please ensure all inputs are numeric.</p>";
                 }
+            }
+
+            if ($_SERVER["REQUEST_METHOD"] == "POST") {
+                $voltage = $_POST["voltage"];
+                $current = $_POST["current"];
+                $current_rate = $_POST["current_rate"];
+                display_results($voltage, $current, $current_rate);
             }
             ?>
         </div>
